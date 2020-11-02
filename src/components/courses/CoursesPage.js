@@ -7,30 +7,43 @@ import { bindActionCreators } from "redux";
 import CourseList from "./CourseList";
 import { Redirect } from "react-router-dom";
 import Spinner from "../common/Spinner";
+import { toast } from "react-toastify";
 
 class CoursesPage extends React.Component {
 	state = {
 		redirectToAddCoursePage: false,
 	};
+
 	componentDidMount() {
 		const { courses, authors, actions } = this.props;
+
 		if (courses.length === 0) {
 			actions.loadCourses().catch((error) => {
-				alert("loading courses failed" + error);
+				alert("Loading courses failed" + error);
 			});
 		}
 
 		if (authors.length === 0) {
 			actions.loadAuthors().catch((error) => {
-				alert("loading authors failed" + error);
+				alert("Loading authors failed" + error);
 			});
 		}
 	}
+
+	handleDeleteCourse = async (course) => {
+		toast.success("Course deleted");
+		try {
+			await this.props.actions.deleteCourse(course);
+		} catch (error) {
+			toast.error("Delete failed. " + error.message, { autoClose: false });
+		}
+	};
+
 	render() {
 		return (
 			<>
 				{this.state.redirectToAddCoursePage && <Redirect to='/course' />}
-				<h2> Courses</h2>
+				<h2>Courses</h2>
 				{this.props.loading ? (
 					<Spinner />
 				) : (
@@ -43,7 +56,10 @@ class CoursesPage extends React.Component {
 							Add Course
 						</button>
 
-						<CourseList courses={this.props.courses} />
+						<CourseList
+							onDeleteClick={this.handleDeleteCourse}
+							courses={this.props.courses}
+						/>
 					</>
 				)}
 			</>
@@ -58,7 +74,6 @@ CoursesPage.propTypes = {
 	loading: PropTypes.bool.isRequired,
 };
 
-//determines what state is passed to our component via props
 function mapStateToProps(state) {
 	return {
 		courses:
@@ -70,7 +85,8 @@ function mapStateToProps(state) {
 							authorName: state.authors.find((a) => a.id === course.authorId)
 								.name,
 						};
-				  }), // eslint-disable-line no-mixed-spaces-and-tabs
+						// eslint-disable-next-line no-mixed-spaces-and-tabs
+				  }),
 		authors: state.authors,
 		loading: state.apiCallsInProgress > 0,
 	};
@@ -81,10 +97,9 @@ function mapDispatchToProps(dispatch) {
 		actions: {
 			loadCourses: bindActionCreators(courseActions.loadCourses, dispatch),
 			loadAuthors: bindActionCreators(authorActions.loadAuthors, dispatch),
+			deleteCourse: bindActionCreators(courseActions.deleteCourse, dispatch),
 		},
 	};
 }
-
-//determines what actions to pass to our component on props
 
 export default connect(mapStateToProps, mapDispatchToProps)(CoursesPage);
